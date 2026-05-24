@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   Apple,
   ArrowUpRight,
@@ -230,17 +231,90 @@ function cn(...classes) {
   return classes.filter(Boolean).join(" ");
 }
 
-function BackgroundGlow() {
-  return (
-    <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-      <div
-        className="absolute inset-0"
+function useIsMobile() {
+  const getInitialValue = () => {
+    if (typeof window === "undefined") return false;
+    return window.innerWidth < 768;
+  };
+
+  const [isMobile, setIsMobile] = useState(getInitialValue);
+
+  useEffect(() => {
+    let timeoutId;
+
+    const checkScreen = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        setIsMobile(window.innerWidth < 768);
+      }, 150);
+    };
+
+    window.addEventListener("resize", checkScreen, { passive: true });
+
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener("resize", checkScreen);
+    };
+  }, []);
+
+  return isMobile;
+}
+
+function Reveal({ children, className = "", delay = 0, y = 22, as = "div" }) {
+  const isMobile = useIsMobile();
+  const reduceMotion = useReducedMotion();
+  const ref = useRef(null);
+  const Tag = as;
+
+  useEffect(() => {
+    if (!isMobile || reduceMotion || !ref.current) return undefined;
+
+    const element = ref.current;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          element.classList.add("unitag-reveal-visible");
+          observer.unobserve(element);
+        }
+      },
+      { threshold: 0.12 }
+    );
+
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, [isMobile, reduceMotion]);
+
+  if (isMobile || reduceMotion) {
+    return (
+      <Tag
+        ref={ref}
+        className={cn("unitag-reveal", className)}
         style={{
-          background:
-            "radial-gradient(circle at 50% 0%, rgba(220,38,38,0.10), transparent 42%), radial-gradient(circle at 90% 20%, rgba(220,38,38,0.08), transparent 36%), radial-gradient(circle at 10% 70%, rgba(17,17,17,0.04), transparent 34%)",
+          "--unitag-delay": `${delay}ms`,
+          "--unitag-y": `${y}px`,
         }}
-      />
-    </div>
+      >
+        {children}
+      </Tag>
+    );
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y, scale: 0.98 }}
+      whileInView={{ opacity: 1, y: 0, scale: 1 }}
+      viewport={{ once: false, amount: 0.2 }}
+      transition={{
+        duration: 0.58,
+        delay: delay / 1000,
+        ease: [0.22, 1, 0.36, 1],
+      }}
+      className={className}
+    >
+      {children}
+    </motion.div>
   );
 }
 
@@ -253,23 +327,155 @@ function Kicker({ children }) {
   );
 }
 
+function MobileAbstractBackground() {
+  return (
+    <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden md:hidden">
+      <div className="unitag-mobile-glow unitag-mobile-glow-a" />
+      <div className="unitag-mobile-glow unitag-mobile-glow-b" />
+      <div className="unitag-mobile-glow unitag-mobile-glow-c" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(220,38,38,0.09),transparent_42%)]" />
+    </div>
+  );
+}
+
+function DesktopAmbientNetwork({ variant = "default" }) {
+  const reduceMotion = useReducedMotion();
+
+  if (reduceMotion) {
+    return (
+      <div className="pointer-events-none absolute inset-0 z-0 hidden overflow-hidden md:block">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(220,38,38,0.10),transparent_42%)]" />
+      </div>
+    );
+  }
+
+  const dots = Array.from({ length: variant === "dense" ? 18 : 10 }, (_, i) => ({
+    id: i,
+    left: `${5 + ((i * 23) % 88)}%`,
+    top: `${7 + ((i * 37) % 82)}%`,
+    delay: i * 0.08,
+  }));
+
+  const paths = [
+    "M20 180 C120 70 230 260 340 150 S570 95 710 210",
+    "M40 95 C170 200 300 35 450 115 S650 260 790 95",
+    "M70 285 C210 230 330 360 490 280 S665 190 815 300",
+  ];
+
+  return (
+    <div className="pointer-events-none absolute inset-0 z-0 hidden overflow-hidden md:block">
+      <motion.div
+        className="absolute inset-[-10%]"
+        animate={{
+          x: variant === "dense" ? [8, -22, 8] : [-6, 18, -6],
+          y: variant === "dense" ? [-14, 34, -14] : [-10, 22, -10],
+          rotate: variant === "dense" ? [-4, 9, -4] : [2, -6, 2],
+        }}
+        transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
+      >
+        <motion.div
+          className="absolute left-1/2 top-1/2 h-[22rem] w-[44rem] -translate-x-1/2 -translate-y-1/2 rounded-[50%] bg-red-500/10 blur-[42px] sm:h-[30rem] sm:w-[60rem]"
+          animate={{ opacity: [0.18, 0.5, 0.18], scale: [0.9, 1.05, 0.9] }}
+          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+        />
+
+        <svg className="absolute inset-0 h-full w-full opacity-70" viewBox="0 0 860 420" preserveAspectRatio="none">
+          {paths.map((d, index) => (
+            <motion.path
+              key={d}
+              d={d}
+              fill="none"
+              stroke={index % 2 ? "rgba(17,17,17,0.09)" : "rgba(220,38,38,0.24)"}
+              strokeWidth="1.05"
+              strokeDasharray="6 12"
+              initial={{ pathLength: 0, opacity: 0 }}
+              whileInView={{ pathLength: [0.12, 1, 0.12], opacity: [0.16, 0.78, 0.16] }}
+              viewport={{ once: false, amount: 0.18 }}
+              transition={{ duration: 9 + index, repeat: Infinity, ease: "easeInOut", delay: index * 0.35 }}
+            />
+          ))}
+        </svg>
+
+        {dots.map((dot) => (
+          <motion.span
+            key={dot.id}
+            className="absolute h-1.5 w-1.5 rounded-full bg-red-500/45 shadow-[0_0_18px_rgba(220,38,38,0.3)]"
+            style={{ left: dot.left, top: dot.top }}
+            animate={{ opacity: [0.16, 0.82, 0.16], scale: [0.7, 1.45, 0.7], y: [0, dot.id % 2 ? 8 : -8, 0] }}
+            transition={{
+              duration: 5.2 + (dot.id % 5) * 0.32,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: dot.delay,
+            }}
+          />
+        ))}
+      </motion.div>
+    </div>
+  );
+}
+
+function BackgroundLayer({ variant = "default" }) {
+  return (
+    <>
+      <MobileAbstractBackground />
+      <DesktopAmbientNetwork variant={variant} />
+    </>
+  );
+}
+
 function TopNav() {
   return (
-    <header className="fixed left-0 right-0 top-0 z-50 hidden border-b border-[#111]/8 bg-white/80 md:block">
+    <motion.header
+      initial={{ y: -24, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.75, ease: "easeOut" }}
+      className="fixed left-0 right-0 top-0 z-50 hidden border-b border-[#111]/8 bg-white/70 backdrop-blur-2xl md:block"
+    >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-center px-8">
         <nav className="flex items-center gap-8">
           {navItems.map((item) => (
-            <a
-              key={item.href}
-              href={item.href}
-              className="text-sm font-bold text-[#111]/55 transition hover:text-red-600"
-            >
+            <a key={item.href} href={item.href} className="text-sm font-bold text-[#111]/55 transition hover:text-red-600">
               {item.label}
             </a>
           ))}
         </nav>
       </div>
-    </header>
+    </motion.header>
+  );
+}
+
+function HeroVisual() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 26, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.85, delay: 0.2, ease: "easeOut" }}
+      className="relative h-full min-h-[420px] w-full overflow-visible"
+    >
+      <DesktopAmbientNetwork variant="dense" />
+      <motion.div
+        className="absolute left-1/2 top-1/2 z-10 h-[210px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-[50%] border border-red-500/18"
+        animate={{ rotate: 360, scale: [0.94, 1.05, 0.94] }}
+        transition={{
+          rotate: { duration: 48, repeat: Infinity, ease: "linear" },
+          scale: { duration: 6.5, repeat: Infinity, ease: "easeInOut" },
+        }}
+      />
+      <motion.div
+        className="absolute left-1/2 top-1/2 z-10 h-[145px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-[50%] border border-[#111]/10"
+        animate={{ rotate: -360, opacity: [0.22, 0.76, 0.22] }}
+        transition={{
+          rotate: { duration: 58, repeat: Infinity, ease: "linear" },
+          opacity: { duration: 5.2, repeat: Infinity, ease: "easeInOut" },
+        }}
+      />
+      <motion.div
+        className="absolute left-1/2 top-1/2 z-10 h-[18px] w-[380px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-red-500/45 blur-[18px]"
+        animate={{ scaleX: [0.72, 1.16, 0.72], opacity: [0.22, 0.72, 0.22], rotate: [0, 8, 0] }}
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+      />
+    </motion.div>
   );
 }
 
@@ -279,37 +485,44 @@ function Hero() {
       id="top"
       className="relative min-h-[100svh] overflow-hidden px-5 pb-8 pt-16 text-[#111] sm:px-8 sm:pb-12 sm:pt-28 lg:pt-32"
     >
-      <BackgroundGlow />
+      <BackgroundLayer variant="dense" />
+
+      <div className="pointer-events-none absolute inset-y-0 right-[-16%] z-0 hidden w-[68%] opacity-80 lg:block">
+        <HeroVisual />
+      </div>
 
       <div className="relative z-10 mx-auto flex min-h-[calc(100svh-5rem)] max-w-7xl items-center sm:min-h-[calc(100svh-7rem)]">
         <div className="w-full max-w-4xl text-center lg:text-left">
-          <h1 className="mx-auto max-w-4xl text-[3.35rem] font-black leading-[0.88] tracking-[-0.075em] text-[#111] sm:text-6xl sm:leading-[0.9] lg:mx-0 lg:text-7xl xl:text-8xl">
-            Unitag'la öğrenci olmak daha kolay
-          </h1>
+          <Reveal delay={60} y={22}>
+            <h1 className="mx-auto max-w-4xl text-[3.35rem] font-black leading-[0.88] tracking-[-0.075em] text-[#111] sm:text-6xl sm:leading-[0.9] lg:mx-0 lg:text-7xl xl:text-8xl">
+              Unitag'la öğrenci olmak daha kolay
+            </h1>
+          </Reveal>
 
-          <p className="mx-auto mt-6 max-w-[21rem] text-[1.05rem] leading-7 text-[#111]/62 sm:mt-6 sm:max-w-2xl sm:text-xl sm:leading-8 lg:mx-0">
-            Öğrenci indirimleri, ikinci el ilanlar, ev/oda/yurt seçenekleri ve kampüs fırsatları tek platformda.
-          </p>
+          <Reveal delay={130} y={18}>
+            <p className="mx-auto mt-6 max-w-[21rem] text-[1.05rem] leading-7 text-[#111]/62 sm:mt-6 sm:max-w-2xl sm:text-xl sm:leading-8 lg:mx-0">
+              Öğrenci indirimleri, ikinci el ilanlar, ev/oda/yurt seçenekleri ve kampüs fırsatları tek platformda.
+            </p>
+          </Reveal>
 
-          <div className="mt-8 flex flex-col gap-3 sm:mt-9 sm:flex-row sm:justify-center lg:justify-start">
-            <a
-              href={APP_STORE_URL}
-              className="inline-flex min-h-14 items-center justify-center gap-3 rounded-2xl bg-[#111] px-6 py-4 text-base font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-red-600"
-            >
-              <Apple className="h-5 w-5" />
-              App Store'dan İndir
-            </a>
-
-            <a
-              href={FORM_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex min-h-14 items-center justify-center gap-3 rounded-2xl border border-red-500/20 bg-white/90 px-6 py-4 text-base font-black text-red-700 shadow-sm transition hover:-translate-y-0.5 hover:border-red-600 hover:bg-red-50"
-            >
-              Üniversite Temsilcisi Ol
-              <ArrowUpRight className="h-5 w-5" />
-            </a>
-          </div>
+          <Reveal delay={210} y={16}>
+            <div className="mt-8 flex flex-col gap-3 sm:mt-9 sm:flex-row sm:justify-center lg:justify-start">
+              <a
+                href={APP_STORE_URL}
+                className="inline-flex min-h-14 items-center justify-center gap-3 rounded-2xl bg-[#111] px-6 py-4 text-base font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-red-600 md:shadow-[0_20px_60px_rgba(17,17,17,0.16)]"
+              >
+                <Apple className="h-5 w-5" /> App Store'dan İndir
+              </a>
+              <a
+                href={FORM_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex min-h-14 items-center justify-center gap-3 rounded-2xl border border-red-500/20 bg-white/90 px-6 py-4 text-base font-black text-red-700 shadow-sm transition hover:-translate-y-0.5 hover:border-red-600 hover:bg-red-50 md:shadow-[0_20px_60px_rgba(220,38,38,0.08)] md:backdrop-blur-xl"
+              >
+                Üniversite Temsilcisi Ol <ArrowUpRight className="h-5 w-5" />
+              </a>
+            </div>
+          </Reveal>
         </div>
       </div>
     </section>
@@ -317,13 +530,15 @@ function Hero() {
 }
 
 function Marquee({ items }) {
+  const content = [...items, ...items, ...items];
+
   return (
-    <div className="overflow-hidden border-y border-[#111]/10 bg-[#111] py-4 text-white">
-      <div className="flex gap-4 overflow-hidden px-5 text-2xl font-black uppercase tracking-[-0.05em] md:unitag-marquee-track md:w-max md:gap-8 md:whitespace-nowrap md:text-6xl">
-        {[...items, ...items, ...items].map((item, index) => (
-          <span key={`${item}-${index}`} className="shrink-0">
+    <div className="overflow-hidden border-y border-[#111]/10 bg-[#111] py-4 text-white sm:py-5">
+      <div className="flex gap-4 overflow-hidden px-5 text-2xl font-black uppercase tracking-[-0.05em] md:unitag-marquee-track md:w-max md:gap-8 md:whitespace-nowrap md:px-0 md:text-6xl md:tracking-[-0.06em]">
+        {content.map((item, i) => (
+          <span key={`${item}-${i}`} className="shrink-0 md:flex md:items-center md:gap-8">
             {item}
-            <span className="ml-4 hidden h-3 w-3 rounded-full bg-red-500 md:inline-block" />
+            <span className="hidden h-3 w-3 rounded-full bg-red-500 md:inline-block" />
           </span>
         ))}
       </div>
@@ -334,33 +549,30 @@ function Marquee({ items }) {
 function Features() {
   return (
     <section id="ozellikler" className="relative overflow-hidden px-5 py-20 text-[#111] sm:px-8 sm:py-24">
-      <BackgroundGlow />
-
+      <BackgroundLayer />
       <div className="relative z-10 mx-auto max-w-7xl">
-        <div className="max-w-3xl">
-          <Kicker>Unitag’da neler var?</Kicker>
-          <h2 className="mt-6 text-4xl font-black tracking-[-0.05em] text-[#111] sm:text-6xl">
-            Öğrencinin şehirde ihtiyacı olan her şey tek platformda.
-          </h2>
-        </div>
+        <Reveal>
+          <div className="max-w-3xl">
+            <Kicker>Unitag’da neler var?</Kicker>
+            <h2 className="mt-6 text-4xl font-black tracking-[-0.05em] text-[#111] sm:text-6xl">
+              Öğrencinin şehirde ihtiyacı olan her şey tek platformda.
+            </h2>
+          </div>
+        </Reveal>
 
         <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {features.map((feature) => {
+          {features.map((feature, index) => {
             const Icon = feature.icon;
-
             return (
-              <div
-                key={feature.title}
-                className="relative overflow-hidden rounded-[2rem] border border-[#111]/10 bg-white/82 p-6 shadow-md md:bg-white/76 md:shadow-[0_24px_90px_rgba(17,17,17,0.08)]"
-              >
-                <div className="relative z-10 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#111] text-white shadow-sm">
-                  <Icon className="h-7 w-7" />
+              <Reveal key={feature.title} delay={index * 60} y={24}>
+                <div className="relative overflow-hidden rounded-[2rem] border border-[#111]/10 bg-white/78 p-6 shadow-md md:bg-white/72 md:shadow-[0_24px_90px_rgba(17,17,17,0.08)] md:backdrop-blur-xl">
+                  <div className="relative z-10 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#111] text-white shadow-sm md:shadow-[0_12px_40px_rgba(17,17,17,0.08)]">
+                    <Icon className="h-7 w-7" />
+                  </div>
+                  <h3 className="relative z-10 mt-8 text-2xl font-black tracking-tight text-[#111]">{feature.title}</h3>
+                  <p className="relative z-10 mt-4 leading-7 text-[#111]/58">{feature.text}</p>
                 </div>
-                <h3 className="relative z-10 mt-8 text-2xl font-black tracking-tight text-[#111]">
-                  {feature.title}
-                </h3>
-                <p className="relative z-10 mt-4 leading-7 text-[#111]/58">{feature.text}</p>
-              </div>
+              </Reveal>
             );
           })}
         </div>
@@ -372,35 +584,42 @@ function Features() {
 function Representative() {
   return (
     <section id="temsilcilik" className="relative overflow-hidden px-5 py-16 text-[#111] sm:px-8 sm:py-20">
-      <BackgroundGlow />
+      <BackgroundLayer variant="dense" />
+      <Reveal y={32}>
+        <div className="relative z-10 mx-auto max-w-7xl overflow-hidden rounded-[2.4rem] border border-red-500/16 bg-gradient-to-br from-red-600 via-red-700 to-[#300507] p-8 text-white shadow-lg md:p-12 md:shadow-[0_35px_120px_rgba(220,38,38,0.24)] lg:p-16">
+          <BackgroundLayer variant="dense" />
+          <div className="relative z-10 max-w-4xl">
+            <Reveal delay={50} y={12}>
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-sm font-bold text-white md:backdrop-blur-xl">
+                <Users className="h-4 w-4" /> Üniversite Temsilciliği
+              </div>
+            </Reveal>
 
-      <div className="relative z-10 mx-auto max-w-7xl overflow-hidden rounded-[2.4rem] border border-red-500/16 bg-gradient-to-br from-red-600 via-red-700 to-[#300507] p-8 text-white shadow-lg md:p-12 md:shadow-[0_35px_120px_rgba(220,38,38,0.24)] lg:p-16">
-        <div className="relative z-10 max-w-4xl">
-          <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-sm font-bold text-white">
-            <Users className="h-4 w-4" />
-            Üniversite Temsilciliği
+            <Reveal delay={100} y={22}>
+              <h2 className="mt-8 max-w-4xl text-4xl font-black tracking-[-0.05em] text-white sm:text-6xl lg:text-7xl">
+                Kendi üniversitende Unitag temsilcisi ol.
+              </h2>
+            </Reveal>
+
+            <Reveal delay={150} y={18}>
+              <p className="mt-6 max-w-2xl text-lg leading-8 text-white/78">
+                Unitag’ı kampüsünde büyütmek, öğrenci topluluğuna katkı sağlamak ve girişimcilik ekosisteminin bir parçası olmak istiyorsan temsilcilik programına başvurabilirsin.
+              </p>
+            </Reveal>
+
+            <Reveal delay={210} y={16}>
+              <a
+                href={FORM_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-9 inline-flex items-center gap-3 rounded-2xl bg-white px-6 py-4 font-black text-red-700 transition hover:-translate-y-0.5 hover:bg-red-50"
+              >
+                Başvuru Formuna Git <ExternalLink className="h-5 w-5" />
+              </a>
+            </Reveal>
           </div>
-
-          <h2 className="mt-8 max-w-4xl text-4xl font-black tracking-[-0.05em] text-white sm:text-6xl lg:text-7xl">
-            Kendi üniversitende Unitag temsilcisi ol.
-          </h2>
-
-          <p className="mt-6 max-w-2xl text-lg leading-8 text-white/78">
-            Unitag’ı kampüsünde büyütmek, öğrenci topluluğuna katkı sağlamak ve girişimcilik ekosisteminin bir parçası
-            olmak istiyorsan temsilcilik programına başvurabilirsin.
-          </p>
-
-          <a
-            href={FORM_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-9 inline-flex items-center gap-3 rounded-2xl bg-white px-6 py-4 font-black text-red-700 transition hover:-translate-y-0.5 hover:bg-red-50"
-          >
-            Başvuru Formuna Git
-            <ExternalLink className="h-5 w-5" />
-          </a>
         </div>
-      </div>
+      </Reveal>
     </section>
   );
 }
@@ -408,34 +627,33 @@ function Representative() {
 function Roadmap() {
   return (
     <section id="roadmap" className="relative overflow-hidden px-5 py-20 text-[#111] sm:px-8 sm:py-24">
-      <BackgroundGlow />
-
+      <BackgroundLayer />
       <div className="relative z-10 mx-auto max-w-7xl">
-        <div className="max-w-3xl">
-          <Kicker>Yol Haritamız</Kicker>
-          <h2 className="mt-6 text-4xl font-black tracking-[-0.05em] text-[#111] sm:text-6xl">
-            Unitag, öğrenci hayatını adım adım daha kapsamlı hale getiriyor.
-          </h2>
-        </div>
+        <Reveal>
+          <div className="max-w-3xl">
+            <Kicker>Yol Haritamız</Kicker>
+            <h2 className="mt-6 text-4xl font-black tracking-[-0.05em] text-[#111] sm:text-6xl">
+              Unitag, öğrenci hayatını adım adım daha kapsamlı hale getiriyor.
+            </h2>
+          </div>
+        </Reveal>
 
         <div className="mt-10 grid gap-4">
           {roadmap.map((item, index) => {
             const Icon = item.icon;
-
             return (
-              <article
-                key={item.title}
-                className="grid gap-5 rounded-[1.8rem] border border-[#111]/10 bg-white/82 p-5 text-[#111] shadow-md md:bg-white/76 md:shadow-[0_25px_90px_rgba(17,17,17,0.08)] sm:p-6 md:grid-cols-[90px_1fr_1.25fr] md:items-center"
-              >
-                <div className="text-3xl font-black text-red-600">0{index + 1}</div>
-                <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-600 ring-1 ring-red-500/10">
-                    <Icon className="h-6 w-6" />
+              <Reveal key={item.title} delay={index * 45} y={22}>
+                <article className="grid gap-5 rounded-[1.8rem] border border-[#111]/10 bg-white/78 p-5 text-[#111] shadow-md md:bg-white/74 md:shadow-[0_25px_90px_rgba(17,17,17,0.08)] md:backdrop-blur-xl sm:p-6 md:grid-cols-[90px_1fr_1.25fr] md:items-center">
+                  <div className="text-3xl font-black text-red-600">0{index + 1}</div>
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-600 ring-1 ring-red-500/10">
+                      <Icon className="h-6 w-6" />
+                    </div>
+                    <h3 className="text-xl font-black text-[#111] sm:text-2xl">{item.title}</h3>
                   </div>
-                  <h3 className="text-xl font-black text-[#111] sm:text-2xl">{item.title}</h3>
-                </div>
-                <p className="leading-7 text-[#111]/60">{item.text}</p>
-              </article>
+                  <p className="leading-7 text-[#111]/60">{item.text}</p>
+                </article>
+              </Reveal>
             );
           })}
         </div>
@@ -447,27 +665,28 @@ function Roadmap() {
 function Team() {
   return (
     <section id="ekip" className="relative overflow-hidden px-5 py-20 text-[#111] sm:px-8 sm:py-24">
-      <BackgroundGlow />
-
+      <BackgroundLayer />
       <div className="relative z-10 mx-auto max-w-7xl">
-        <div className="max-w-3xl">
-          <Kicker>Unitag Ekibi</Kicker>
-          <h2 className="mt-6 text-4xl font-black tracking-[-0.05em] text-[#111] sm:text-6xl">
-            Öğrenci deneyimini daha erişilebilir hale getiren ekip.
-          </h2>
-        </div>
+        <Reveal>
+          <div className="max-w-3xl">
+            <Kicker>Unitag Ekibi</Kicker>
+            <h2 className="mt-6 text-4xl font-black tracking-[-0.05em] text-[#111] sm:text-6xl">
+              Öğrenci deneyimini daha erişilebilir hale getiren ekip.
+            </h2>
+          </div>
+        </Reveal>
 
         <div className="mt-10 grid gap-4 md:grid-cols-3">
-          {team.map((person) => (
-            <div
-              key={person.name}
-              className="group relative overflow-hidden rounded-[2rem] border border-[#111]/10 bg-white/82 p-7 shadow-md md:bg-white/76 md:shadow-[0_25px_90px_rgba(17,17,17,0.08)]"
-            >
-              <div className="mb-8 h-1.5 w-16 rounded-full bg-red-500" />
-              <h3 className="text-2xl font-black text-[#111]">{person.name}</h3>
-              <p className="mt-2 text-sm font-bold text-red-600">{person.role}</p>
-              <p className="mt-5 leading-7 text-[#111]/58">{person.focus}</p>
-            </div>
+          {team.map((person, index) => (
+            <Reveal key={person.name} delay={index * 70} y={22}>
+              <div className="group relative overflow-hidden rounded-[2rem] border border-[#111]/10 bg-white/78 p-7 shadow-md md:bg-white/74 md:shadow-[0_25px_90px_rgba(17,17,17,0.08)] md:backdrop-blur-xl">
+                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-red-500/60 to-transparent opacity-0 transition group-hover:opacity-100" />
+                <div className="mb-8 h-1.5 w-16 rounded-full bg-red-500" />
+                <h3 className="text-2xl font-black text-[#111]">{person.name}</h3>
+                <p className="mt-2 text-sm font-bold text-red-600">{person.role}</p>
+                <p className="mt-5 leading-7 text-[#111]/58">{person.focus}</p>
+              </div>
+            </Reveal>
           ))}
         </div>
       </div>
@@ -480,35 +699,35 @@ function FAQ() {
 
   return (
     <section id="sss" className="relative overflow-hidden px-5 py-20 text-[#111] sm:px-8 sm:py-24">
-      <BackgroundGlow />
-
+      <BackgroundLayer />
       <div className="relative z-10 mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.82fr_1.18fr]">
-        <div>
-          <Kicker>SSS</Kicker>
-          <h2 className="mt-6 text-4xl font-black tracking-[-0.05em] text-[#111] sm:text-6xl">Merak edilenler.</h2>
-        </div>
+        <Reveal>
+          <div>
+            <Kicker>SSS</Kicker>
+            <h2 className="mt-6 text-4xl font-black tracking-[-0.05em] text-[#111] sm:text-6xl">Merak edilenler.</h2>
+          </div>
+        </Reveal>
 
         <div className="space-y-3">
           {faqs.map((faq, index) => (
-            <div
-              key={faq.q}
-              className="rounded-[1.6rem] border border-[#111]/10 bg-white/82 shadow-md md:bg-white/76 md:shadow-[0_20px_70px_rgba(17,17,17,0.07)]"
-            >
-              <button
-                onClick={() => setActive(active === index ? -1 : index)}
-                className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left"
-              >
-                <span className="font-black text-[#111]">{faq.q}</span>
-                <ChevronDown
-                  className={cn(
-                    "h-5 w-5 shrink-0 text-[#111]/45 transition",
-                    active === index && "rotate-180 text-red-600"
-                  )}
-                />
-              </button>
+            <Reveal key={faq.q} delay={index * 45} y={18}>
+              <div className="rounded-[1.6rem] border border-[#111]/10 bg-white/78 shadow-md md:bg-white/74 md:shadow-[0_20px_70px_rgba(17,17,17,0.07)] md:backdrop-blur-xl">
+                <button
+                  onClick={() => setActive(active === index ? -1 : index)}
+                  className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left"
+                >
+                  <span className="font-black text-[#111]">{faq.q}</span>
+                  <ChevronDown
+                    className={cn(
+                      "h-5 w-5 shrink-0 text-[#111]/45 transition",
+                      active === index && "rotate-180 text-red-600"
+                    )}
+                  />
+                </button>
 
-              {active === index && <p className="px-6 pb-6 leading-7 text-[#111]/58">{faq.a}</p>}
-            </div>
+                {active === index && <p className="px-6 pb-6 leading-7 text-[#111]/58">{faq.a}</p>}
+              </div>
+            </Reveal>
           ))}
         </div>
       </div>
@@ -522,7 +741,7 @@ function LegalModal({ activeDoc, onClose, onSwitch }) {
   if (!doc) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/55 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[100] bg-black/55 p-4 md:backdrop-blur-sm" onClick={onClose}>
       <div
         className="mx-auto flex max-h-[92vh] max-w-4xl flex-col overflow-hidden rounded-[2rem] border border-[#111]/10 bg-white shadow-2xl"
         onClick={(e) => e.stopPropagation()}
@@ -597,73 +816,74 @@ function CookieBanner({ openLegal }) {
   if (!visible) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 z-[80] mx-auto max-w-5xl rounded-[2rem] border border-[#111]/10 bg-white/95 p-4 shadow-xl md:p-5 md:shadow-2xl">
-      <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
-        <div className="flex gap-4">
-          <div className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-600 sm:flex">
-            <Cookie className="h-6 w-6" />
+    <Reveal y={18}>
+      <div className="fixed bottom-4 left-4 right-4 z-[80] mx-auto max-w-5xl rounded-[2rem] border border-[#111]/10 bg-white/95 p-4 shadow-xl md:p-5 md:shadow-2xl md:backdrop-blur-2xl">
+        <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div className="flex gap-4">
+            <div className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-600 sm:flex">
+              <Cookie className="h-6 w-6" />
+            </div>
+
+            <div>
+              <h3 className="font-black text-[#111]">Çerezleri kullanıyoruz</h3>
+              <p className="mt-1 max-w-3xl text-sm leading-6 text-[#111]/58">
+                Deneyimi geliştirmek, performansı analiz etmek ve tercihleri hatırlamak için çerezlerden yararlanıyoruz.
+                <button
+                  onClick={() => openLegal("cookie")}
+                  className="ml-1 font-bold text-red-600 underline underline-offset-4"
+                >
+                  Çerez Politikası
+                </button>
+              </p>
+
+              {prefs && (
+                <div className="mt-4 grid gap-2 text-sm text-[#111]/58 sm:grid-cols-2">
+                  {["Zorunlu çerezler", "Performans ve analiz", "İşlevsel çerezler", "Reklam ve pazarlama"].map(
+                    (x, i) => (
+                      <label
+                        key={x}
+                        className="flex items-center gap-2 rounded-2xl border border-[#111]/10 bg-[#111]/[0.03] px-3 py-2"
+                      >
+                        <input type="checkbox" defaultChecked={i === 0} disabled={i === 0} className="accent-red-600" />
+                        {x}
+                      </label>
+                    )
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
-          <div>
-            <h3 className="font-black text-[#111]">Çerezleri kullanıyoruz</h3>
-            <p className="mt-1 max-w-3xl text-sm leading-6 text-[#111]/58">
-              Deneyimi geliştirmek, performansı analiz etmek ve tercihleri hatırlamak için çerezlerden yararlanıyoruz.
-              <button
-                onClick={() => openLegal("cookie")}
-                className="ml-1 font-bold text-red-600 underline underline-offset-4"
-              >
-                Çerez Politikası
-              </button>
-            </p>
-
-            {prefs && (
-              <div className="mt-4 grid gap-2 text-sm text-[#111]/58 sm:grid-cols-2">
-                {["Zorunlu çerezler", "Performans ve analiz", "İşlevsel çerezler", "Reklam ve pazarlama"].map(
-                  (x, i) => (
-                    <label
-                      key={x}
-                      className="flex items-center gap-2 rounded-2xl border border-[#111]/10 bg-[#111]/[0.03] px-3 py-2"
-                    >
-                      <input type="checkbox" defaultChecked={i === 0} disabled={i === 0} className="accent-red-600" />
-                      {x}
-                    </label>
-                  )
-                )}
-              </div>
-            )}
+          <div className="flex flex-col gap-2 sm:flex-row lg:justify-end">
+            <button
+              onClick={() => setPrefs((v) => !v)}
+              className="rounded-2xl border border-[#111]/10 px-4 py-3 text-sm font-bold text-[#111]/70 transition hover:bg-[#111]/5"
+            >
+              Tercihler
+            </button>
+            <button
+              onClick={reject}
+              className="rounded-2xl border border-[#111]/10 px-4 py-3 text-sm font-bold text-[#111]/70 transition hover:bg-[#111]/5"
+            >
+              Reddet
+            </button>
+            <button
+              onClick={acceptAll}
+              className="rounded-2xl bg-[#111] px-5 py-3 text-sm font-black text-white transition hover:bg-red-600"
+            >
+              Tümünü Kabul Et
+            </button>
           </div>
-        </div>
-
-        <div className="flex flex-col gap-2 sm:flex-row lg:justify-end">
-          <button
-            onClick={() => setPrefs((v) => !v)}
-            className="rounded-2xl border border-[#111]/10 px-4 py-3 text-sm font-bold text-[#111]/70 transition hover:bg-[#111]/5"
-          >
-            Tercihler
-          </button>
-          <button
-            onClick={reject}
-            className="rounded-2xl border border-[#111]/10 px-4 py-3 text-sm font-bold text-[#111]/70 transition hover:bg-[#111]/5"
-          >
-            Reddet
-          </button>
-          <button
-            onClick={acceptAll}
-            className="rounded-2xl bg-[#111] px-5 py-3 text-sm font-black text-white transition hover:bg-red-600"
-          >
-            Tümünü Kabul Et
-          </button>
         </div>
       </div>
-    </div>
+    </Reveal>
   );
 }
 
 function Footer({ openLegal }) {
   return (
     <footer className="relative overflow-hidden border-t border-[#111]/10 px-5 py-12 text-[#111] sm:px-8">
-      <BackgroundGlow />
-
+      <BackgroundLayer />
       <div className="relative z-10 mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1fr_auto]">
         <div>
           <div className="text-4xl font-black tracking-[-0.08em] text-[#111] sm:text-6xl">Unitag</div>
@@ -722,6 +942,82 @@ export default function UnitagLandingPage() {
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#FAF7F2] text-[#111] selection:bg-red-600 selection:text-white">
       <style>{`
+        @media (max-width: 767px) {
+          .unitag-reveal {
+            opacity: 0;
+            transform: translate3d(0, var(--unitag-y, 20px), 0);
+            transition:
+              opacity 420ms ease,
+              transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+            transition-delay: var(--unitag-delay, 0ms);
+            will-change: opacity, transform;
+          }
+
+          .unitag-reveal-visible {
+            opacity: 1;
+            transform: translate3d(0, 0, 0);
+          }
+
+          .unitag-mobile-glow {
+            position: absolute;
+            border-radius: 9999px;
+            pointer-events: none;
+            transform: translate3d(0, 0, 0);
+            will-change: transform, opacity;
+          }
+
+          .unitag-mobile-glow-a {
+            width: 20rem;
+            height: 20rem;
+            left: -7rem;
+            top: -5rem;
+            background: rgba(220, 38, 38, 0.12);
+            filter: blur(34px);
+            animation: unitag-mobile-float-a 16s ease-in-out infinite;
+          }
+
+          .unitag-mobile-glow-b {
+            width: 18rem;
+            height: 18rem;
+            right: -7rem;
+            top: 7rem;
+            background: rgba(220, 38, 38, 0.09);
+            filter: blur(32px);
+            animation: unitag-mobile-float-b 18s ease-in-out infinite;
+          }
+
+          .unitag-mobile-glow-c {
+            width: 16rem;
+            height: 16rem;
+            left: 18%;
+            bottom: -8rem;
+            background: rgba(255, 255, 255, 0.8);
+            filter: blur(36px);
+          }
+
+          @keyframes unitag-mobile-float-a {
+            0%, 100% {
+              transform: translate3d(0, 0, 0) scale(1);
+              opacity: 0.85;
+            }
+            50% {
+              transform: translate3d(1.2rem, 1.8rem, 0) scale(1.06);
+              opacity: 0.62;
+            }
+          }
+
+          @keyframes unitag-mobile-float-b {
+            0%, 100% {
+              transform: translate3d(0, 0, 0) scale(1);
+              opacity: 0.75;
+            }
+            50% {
+              transform: translate3d(-1.4rem, 1.2rem, 0) scale(1.05);
+              opacity: 0.55;
+            }
+          }
+        }
+
         @media (min-width: 768px) {
           .unitag-marquee-track {
             animation: unitag-marquee 34s linear infinite;
@@ -735,6 +1031,17 @@ export default function UnitagLandingPage() {
             to {
               transform: translateX(0%);
             }
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .unitag-reveal,
+          .unitag-mobile-glow,
+          .unitag-marquee-track {
+            animation: none !important;
+            transition: none !important;
+            opacity: 1 !important;
+            transform: none !important;
           }
         }
       `}</style>
