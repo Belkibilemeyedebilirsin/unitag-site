@@ -260,7 +260,7 @@ function useIsMobile() {
   return isMobile;
 }
 
-function Reveal({ children, className = "", delay = 0, y = 22, as = "div" }) {
+function Reveal({ children, className = "", delay = 0, y = 18, as = "div" }) {
   const isMobile = useIsMobile();
   const reduceMotion = useReducedMotion();
   const ref = useRef(null);
@@ -330,10 +330,16 @@ function Kicker({ children }) {
 function MobileAbstractBackground() {
   return (
     <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden md:hidden">
-      <div className="unitag-mobile-glow unitag-mobile-glow-a" />
-      <div className="unitag-mobile-glow unitag-mobile-glow-b" />
-      <div className="unitag-mobile-glow unitag-mobile-glow-c" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(220,38,38,0.09),transparent_42%)]" />
+      <div className="unitag-mobile-abstract-base" />
+
+      <div className="unitag-mobile-orbit unitag-mobile-orbit-a" />
+      <div className="unitag-mobile-orbit unitag-mobile-orbit-b" />
+      <div className="unitag-mobile-orbit unitag-mobile-orbit-c" />
+
+      <span className="unitag-mobile-dot unitag-mobile-dot-a" />
+      <span className="unitag-mobile-dot unitag-mobile-dot-b" />
+      <span className="unitag-mobile-dot unitag-mobile-dot-c" />
+      <span className="unitag-mobile-dot unitag-mobile-dot-d" />
     </div>
   );
 }
@@ -416,15 +422,21 @@ function DesktopAmbientNetwork({ variant = "default" }) {
 }
 
 function BackgroundLayer({ variant = "default" }) {
+  const isMobile = useIsMobile();
+
   return (
     <>
       <MobileAbstractBackground />
-      <DesktopAmbientNetwork variant={variant} />
+      {!isMobile && <DesktopAmbientNetwork variant={variant} />}
     </>
   );
 }
 
 function TopNav() {
+  const isMobile = useIsMobile();
+
+  if (isMobile) return null;
+
   return (
     <motion.header
       initial={{ y: -24, opacity: 0 }}
@@ -455,7 +467,7 @@ function HeroVisual() {
     >
       <DesktopAmbientNetwork variant="dense" />
       <motion.div
-        className="absolute left-1/2 top-1/2 z-10 h-[210px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-[50%] border border-red-500/18"
+        className="absolute left-1/2 top-1/2 z-10 h-[210px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-[50%] border border-red-500/20"
         animate={{ rotate: 360, scale: [0.94, 1.05, 0.94] }}
         transition={{
           rotate: { duration: 48, repeat: Infinity, ease: "linear" },
@@ -480,6 +492,8 @@ function HeroVisual() {
 }
 
 function Hero() {
+  const isMobile = useIsMobile();
+
   return (
     <section
       id="top"
@@ -487,9 +501,11 @@ function Hero() {
     >
       <BackgroundLayer variant="dense" />
 
-      <div className="pointer-events-none absolute inset-y-0 right-[-16%] z-0 hidden w-[68%] opacity-80 lg:block">
-        <HeroVisual />
-      </div>
+      {!isMobile && (
+        <div className="pointer-events-none absolute inset-y-0 right-[-16%] z-0 hidden w-[68%] opacity-80 lg:block">
+          <HeroVisual />
+        </div>
+      )}
 
       <div className="relative z-10 mx-auto flex min-h-[calc(100svh-5rem)] max-w-7xl items-center sm:min-h-[calc(100svh-7rem)]">
         <div className="w-full max-w-4xl text-center lg:text-left">
@@ -530,15 +546,15 @@ function Hero() {
 }
 
 function Marquee({ items }) {
-  const content = [...items, ...items, ...items];
+  const content = [...items, ...items, ...items, ...items];
 
   return (
     <div className="overflow-hidden border-y border-[#111]/10 bg-[#111] py-4 text-white sm:py-5">
-      <div className="flex gap-4 overflow-hidden px-5 text-2xl font-black uppercase tracking-[-0.05em] md:unitag-marquee-track md:w-max md:gap-8 md:whitespace-nowrap md:px-0 md:text-6xl md:tracking-[-0.06em]">
+      <div className="unitag-marquee-track flex w-max gap-6 whitespace-nowrap px-0 text-2xl font-black uppercase tracking-[-0.05em] md:gap-8 md:text-6xl md:tracking-[-0.06em]">
         {content.map((item, i) => (
-          <span key={`${item}-${i}`} className="shrink-0 md:flex md:items-center md:gap-8">
+          <span key={`${item}-${i}`} className="flex shrink-0 items-center gap-6 md:gap-8">
             {item}
-            <span className="hidden h-3 w-3 rounded-full bg-red-500 md:inline-block" />
+            <span className="h-2.5 w-2.5 rounded-full bg-red-500 md:h-3 md:w-3" />
           </span>
         ))}
       </div>
@@ -563,8 +579,9 @@ function Features() {
         <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {features.map((feature, index) => {
             const Icon = feature.icon;
+
             return (
-              <Reveal key={feature.title} delay={index * 60} y={24}>
+              <Reveal key={feature.title} delay={index * 50} y={20}>
                 <div className="relative overflow-hidden rounded-[2rem] border border-[#111]/10 bg-white/78 p-6 shadow-md md:bg-white/72 md:shadow-[0_24px_90px_rgba(17,17,17,0.08)] md:backdrop-blur-xl">
                   <div className="relative z-10 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#111] text-white shadow-sm md:shadow-[0_12px_40px_rgba(17,17,17,0.08)]">
                     <Icon className="h-7 w-7" />
@@ -585,7 +602,7 @@ function Representative() {
   return (
     <section id="temsilcilik" className="relative overflow-hidden px-5 py-16 text-[#111] sm:px-8 sm:py-20">
       <BackgroundLayer variant="dense" />
-      <Reveal y={32}>
+      <Reveal y={28}>
         <div className="relative z-10 mx-auto max-w-7xl overflow-hidden rounded-[2.4rem] border border-red-500/16 bg-gradient-to-br from-red-600 via-red-700 to-[#300507] p-8 text-white shadow-lg md:p-12 md:shadow-[0_35px_120px_rgba(220,38,38,0.24)] lg:p-16">
           <BackgroundLayer variant="dense" />
           <div className="relative z-10 max-w-4xl">
@@ -595,19 +612,19 @@ function Representative() {
               </div>
             </Reveal>
 
-            <Reveal delay={100} y={22}>
+            <Reveal delay={100} y={20}>
               <h2 className="mt-8 max-w-4xl text-4xl font-black tracking-[-0.05em] text-white sm:text-6xl lg:text-7xl">
                 Kendi üniversitende Unitag temsilcisi ol.
               </h2>
             </Reveal>
 
-            <Reveal delay={150} y={18}>
+            <Reveal delay={150} y={16}>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-white/78">
                 Unitag’ı kampüsünde büyütmek, öğrenci topluluğuna katkı sağlamak ve girişimcilik ekosisteminin bir parçası olmak istiyorsan temsilcilik programına başvurabilirsin.
               </p>
             </Reveal>
 
-            <Reveal delay={210} y={16}>
+            <Reveal delay={210} y={14}>
               <a
                 href={FORM_URL}
                 target="_blank"
@@ -641,8 +658,9 @@ function Roadmap() {
         <div className="mt-10 grid gap-4">
           {roadmap.map((item, index) => {
             const Icon = item.icon;
+
             return (
-              <Reveal key={item.title} delay={index * 45} y={22}>
+              <Reveal key={item.title} delay={index * 40} y={20}>
                 <article className="grid gap-5 rounded-[1.8rem] border border-[#111]/10 bg-white/78 p-5 text-[#111] shadow-md md:bg-white/74 md:shadow-[0_25px_90px_rgba(17,17,17,0.08)] md:backdrop-blur-xl sm:p-6 md:grid-cols-[90px_1fr_1.25fr] md:items-center">
                   <div className="text-3xl font-black text-red-600">0{index + 1}</div>
                   <div className="flex items-center gap-4">
@@ -678,7 +696,7 @@ function Team() {
 
         <div className="mt-10 grid gap-4 md:grid-cols-3">
           {team.map((person, index) => (
-            <Reveal key={person.name} delay={index * 70} y={22}>
+            <Reveal key={person.name} delay={index * 60} y={20}>
               <div className="group relative overflow-hidden rounded-[2rem] border border-[#111]/10 bg-white/78 p-7 shadow-md md:bg-white/74 md:shadow-[0_25px_90px_rgba(17,17,17,0.08)] md:backdrop-blur-xl">
                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-red-500/60 to-transparent opacity-0 transition group-hover:opacity-100" />
                 <div className="mb-8 h-1.5 w-16 rounded-full bg-red-500" />
@@ -710,7 +728,7 @@ function FAQ() {
 
         <div className="space-y-3">
           {faqs.map((faq, index) => (
-            <Reveal key={faq.q} delay={index * 45} y={18}>
+            <Reveal key={faq.q} delay={index * 35} y={16}>
               <div className="rounded-[1.6rem] border border-[#111]/10 bg-white/78 shadow-md md:bg-white/74 md:shadow-[0_20px_70px_rgba(17,17,17,0.07)] md:backdrop-blur-xl">
                 <button
                   onClick={() => setActive(active === index ? -1 : index)}
@@ -816,67 +834,65 @@ function CookieBanner({ openLegal }) {
   if (!visible) return null;
 
   return (
-    <Reveal y={18}>
-      <div className="fixed bottom-4 left-4 right-4 z-[80] mx-auto max-w-5xl rounded-[2rem] border border-[#111]/10 bg-white/95 p-4 shadow-xl md:p-5 md:shadow-2xl md:backdrop-blur-2xl">
-        <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
-          <div className="flex gap-4">
-            <div className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-600 sm:flex">
-              <Cookie className="h-6 w-6" />
-            </div>
-
-            <div>
-              <h3 className="font-black text-[#111]">Çerezleri kullanıyoruz</h3>
-              <p className="mt-1 max-w-3xl text-sm leading-6 text-[#111]/58">
-                Deneyimi geliştirmek, performansı analiz etmek ve tercihleri hatırlamak için çerezlerden yararlanıyoruz.
-                <button
-                  onClick={() => openLegal("cookie")}
-                  className="ml-1 font-bold text-red-600 underline underline-offset-4"
-                >
-                  Çerez Politikası
-                </button>
-              </p>
-
-              {prefs && (
-                <div className="mt-4 grid gap-2 text-sm text-[#111]/58 sm:grid-cols-2">
-                  {["Zorunlu çerezler", "Performans ve analiz", "İşlevsel çerezler", "Reklam ve pazarlama"].map(
-                    (x, i) => (
-                      <label
-                        key={x}
-                        className="flex items-center gap-2 rounded-2xl border border-[#111]/10 bg-[#111]/[0.03] px-3 py-2"
-                      >
-                        <input type="checkbox" defaultChecked={i === 0} disabled={i === 0} className="accent-red-600" />
-                        {x}
-                      </label>
-                    )
-                  )}
-                </div>
-              )}
-            </div>
+    <div className="fixed bottom-4 left-4 right-4 z-[80] mx-auto max-w-5xl rounded-[2rem] border border-[#111]/10 bg-white/95 p-4 shadow-xl md:p-5 md:shadow-2xl md:backdrop-blur-2xl">
+      <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
+        <div className="flex gap-4">
+          <div className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-600 sm:flex">
+            <Cookie className="h-6 w-6" />
           </div>
 
-          <div className="flex flex-col gap-2 sm:flex-row lg:justify-end">
-            <button
-              onClick={() => setPrefs((v) => !v)}
-              className="rounded-2xl border border-[#111]/10 px-4 py-3 text-sm font-bold text-[#111]/70 transition hover:bg-[#111]/5"
-            >
-              Tercihler
-            </button>
-            <button
-              onClick={reject}
-              className="rounded-2xl border border-[#111]/10 px-4 py-3 text-sm font-bold text-[#111]/70 transition hover:bg-[#111]/5"
-            >
-              Reddet
-            </button>
-            <button
-              onClick={acceptAll}
-              className="rounded-2xl bg-[#111] px-5 py-3 text-sm font-black text-white transition hover:bg-red-600"
-            >
-              Tümünü Kabul Et
-            </button>
+          <div>
+            <h3 className="font-black text-[#111]">Çerezleri kullanıyoruz</h3>
+            <p className="mt-1 max-w-3xl text-sm leading-6 text-[#111]/58">
+              Deneyimi geliştirmek, performansı analiz etmek ve tercihleri hatırlamak için çerezlerden yararlanıyoruz.
+              <button
+                onClick={() => openLegal("cookie")}
+                className="ml-1 font-bold text-red-600 underline underline-offset-4"
+              >
+                Çerez Politikası
+              </button>
+            </p>
+
+            {prefs && (
+              <div className="mt-4 grid gap-2 text-sm text-[#111]/58 sm:grid-cols-2">
+                {["Zorunlu çerezler", "Performans ve analiz", "İşlevsel çerezler", "Reklam ve pazarlama"].map(
+                  (x, i) => (
+                    <label
+                      key={x}
+                      className="flex items-center gap-2 rounded-2xl border border-[#111]/10 bg-[#111]/[0.03] px-3 py-2"
+                    >
+                      <input type="checkbox" defaultChecked={i === 0} disabled={i === 0} className="accent-red-600" />
+                      {x}
+                    </label>
+                  )
+                )}
+              </div>
+            )}
           </div>
         </div>
+
+        <div className="flex flex-col gap-2 sm:flex-row lg:justify-end">
+          <button
+            onClick={() => setPrefs((v) => !v)}
+            className="rounded-2xl border border-[#111]/10 px-4 py-3 text-sm font-bold text-[#111]/70 transition hover:bg-[#111]/5"
+          >
+            Tercihler
+          </button>
+          <button
+            onClick={reject}
+            className="rounded-2xl border border-[#111]/10 px-4 py-3 text-sm font-bold text-[#111]/70 transition hover:bg-[#111]/5"
+          >
+            Reddet
+          </button>
+          <button
+            onClick={acceptAll}
+            className="rounded-2xl bg-[#111] px-5 py-3 text-sm font-black text-white transition hover:bg-red-600"
+          >
+            Tümünü Kabul Et
+          </button>
+        </div>
       </div>
-    </Reveal>
+    </div>
   );
 }
 
@@ -945,10 +961,10 @@ export default function UnitagLandingPage() {
         @media (max-width: 767px) {
           .unitag-reveal {
             opacity: 0;
-            transform: translate3d(0, var(--unitag-y, 20px), 0);
+            transform: translate3d(0, var(--unitag-y, 14px), 0);
             transition:
-              opacity 420ms ease,
-              transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+              opacity 300ms ease,
+              transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
             transition-delay: var(--unitag-delay, 0ms);
             will-change: opacity, transform;
           }
@@ -958,62 +974,185 @@ export default function UnitagLandingPage() {
             transform: translate3d(0, 0, 0);
           }
 
-          .unitag-mobile-glow {
+          .unitag-mobile-abstract-base {
+            position: absolute;
+            inset: 0;
+            background:
+              radial-gradient(circle at 18% 8%, rgba(220, 38, 38, 0.16), transparent 34%),
+              radial-gradient(circle at 86% 18%, rgba(220, 38, 38, 0.10), transparent 32%),
+              radial-gradient(circle at 50% 78%, rgba(255, 255, 255, 0.82), transparent 36%),
+              linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(254, 242, 242, 0.72), rgba(255, 255, 255, 0.96));
+          }
+
+          .unitag-mobile-orbit {
             position: absolute;
             border-radius: 9999px;
-            pointer-events: none;
+            border: 1px solid rgba(220, 38, 38, 0.16);
             transform: translate3d(0, 0, 0);
             will-change: transform, opacity;
           }
 
-          .unitag-mobile-glow-a {
-            width: 20rem;
-            height: 20rem;
+          .unitag-mobile-orbit-a {
+            width: 23rem;
+            height: 9rem;
             left: -7rem;
-            top: -5rem;
-            background: rgba(220, 38, 38, 0.12);
-            filter: blur(34px);
-            animation: unitag-mobile-float-a 16s ease-in-out infinite;
+            top: 5rem;
+            transform: rotate(-18deg);
+            animation: unitag-mobile-orbit-a 18s ease-in-out infinite;
           }
 
-          .unitag-mobile-glow-b {
-            width: 18rem;
-            height: 18rem;
-            right: -7rem;
-            top: 7rem;
-            background: rgba(220, 38, 38, 0.09);
-            filter: blur(32px);
-            animation: unitag-mobile-float-b 18s ease-in-out infinite;
+          .unitag-mobile-orbit-b {
+            width: 21rem;
+            height: 8rem;
+            right: -8rem;
+            top: 17rem;
+            transform: rotate(18deg);
+            border-color: rgba(17, 17, 17, 0.08);
+            animation: unitag-mobile-orbit-b 20s ease-in-out infinite;
           }
 
-          .unitag-mobile-glow-c {
-            width: 16rem;
-            height: 16rem;
-            left: 18%;
-            bottom: -8rem;
-            background: rgba(255, 255, 255, 0.8);
-            filter: blur(36px);
+          .unitag-mobile-orbit-c {
+            width: 20rem;
+            height: 7rem;
+            left: 16%;
+            bottom: 4rem;
+            transform: rotate(8deg);
+            border-color: rgba(220, 38, 38, 0.11);
+            animation: unitag-mobile-orbit-c 22s ease-in-out infinite;
           }
 
-          @keyframes unitag-mobile-float-a {
-            0%, 100% {
-              transform: translate3d(0, 0, 0) scale(1);
-              opacity: 0.85;
+          .unitag-mobile-dot {
+            position: absolute;
+            width: 0.42rem;
+            height: 0.42rem;
+            border-radius: 9999px;
+            background: rgba(220, 38, 38, 0.48);
+            box-shadow: 0 0 10px rgba(220, 38, 38, 0.16);
+            transform: translate3d(0, 0, 0);
+            will-change: transform, opacity;
+          }
+
+          .unitag-mobile-dot-a {
+            left: 14%;
+            top: 18%;
+            animation: unitag-mobile-dot-a 7s ease-in-out infinite;
+          }
+
+          .unitag-mobile-dot-b {
+            right: 18%;
+            top: 29%;
+            animation: unitag-mobile-dot-b 8s ease-in-out infinite;
+          }
+
+          .unitag-mobile-dot-c {
+            left: 28%;
+            bottom: 20%;
+            animation: unitag-mobile-dot-c 9s ease-in-out infinite;
+          }
+
+          .unitag-mobile-dot-d {
+            right: 24%;
+            bottom: 34%;
+            animation: unitag-mobile-dot-d 8.5s ease-in-out infinite;
+          }
+
+          .unitag-marquee-track {
+            animation: unitag-marquee-mobile 26s linear infinite;
+            will-change: transform;
+            transform: translate3d(-25%, 0, 0);
+          }
+
+          @keyframes unitag-marquee-mobile {
+            from {
+              transform: translate3d(-25%, 0, 0);
             }
+
+            to {
+              transform: translate3d(0%, 0, 0);
+            }
+          }
+
+          @keyframes unitag-mobile-orbit-a {
+            0%, 100% {
+              transform: translate3d(0, 0, 0) rotate(-18deg) scale(1);
+              opacity: 0.74;
+            }
+
             50% {
-              transform: translate3d(1.2rem, 1.8rem, 0) scale(1.06);
+              transform: translate3d(1rem, 1.2rem, 0) rotate(-12deg) scale(1.04);
+              opacity: 0.48;
+            }
+          }
+
+          @keyframes unitag-mobile-orbit-b {
+            0%, 100% {
+              transform: translate3d(0, 0, 0) rotate(18deg) scale(1);
               opacity: 0.62;
             }
+
+            50% {
+              transform: translate3d(-1.1rem, 0.8rem, 0) rotate(12deg) scale(1.03);
+              opacity: 0.42;
+            }
           }
 
-          @keyframes unitag-mobile-float-b {
+          @keyframes unitag-mobile-orbit-c {
+            0%, 100% {
+              transform: translate3d(0, 0, 0) rotate(8deg) scale(1);
+              opacity: 0.58;
+            }
+
+            50% {
+              transform: translate3d(0.8rem, -0.8rem, 0) rotate(14deg) scale(1.04);
+              opacity: 0.38;
+            }
+          }
+
+          @keyframes unitag-mobile-dot-a {
             0%, 100% {
               transform: translate3d(0, 0, 0) scale(1);
-              opacity: 0.75;
+              opacity: 0.45;
             }
+
             50% {
-              transform: translate3d(-1.4rem, 1.2rem, 0) scale(1.05);
-              opacity: 0.55;
+              transform: translate3d(0.8rem, 1rem, 0) scale(1.35);
+              opacity: 0.78;
+            }
+          }
+
+          @keyframes unitag-mobile-dot-b {
+            0%, 100% {
+              transform: translate3d(0, 0, 0) scale(1);
+              opacity: 0.42;
+            }
+
+            50% {
+              transform: translate3d(-1rem, 0.8rem, 0) scale(1.3);
+              opacity: 0.72;
+            }
+          }
+
+          @keyframes unitag-mobile-dot-c {
+            0%, 100% {
+              transform: translate3d(0, 0, 0) scale(1);
+              opacity: 0.36;
+            }
+
+            50% {
+              transform: translate3d(0.9rem, -0.7rem, 0) scale(1.24);
+              opacity: 0.66;
+            }
+          }
+
+          @keyframes unitag-mobile-dot-d {
+            0%, 100% {
+              transform: translate3d(0, 0, 0) scale(1);
+              opacity: 0.34;
+            }
+
+            50% {
+              transform: translate3d(-0.7rem, -0.9rem, 0) scale(1.28);
+              opacity: 0.64;
             }
           }
         }
@@ -1021,22 +1160,25 @@ export default function UnitagLandingPage() {
         @media (min-width: 768px) {
           .unitag-marquee-track {
             animation: unitag-marquee 34s linear infinite;
+            will-change: transform;
+            transform: translate3d(-25%, 0, 0);
           }
 
           @keyframes unitag-marquee {
             from {
-              transform: translateX(-33.333%);
+              transform: translate3d(-25%, 0, 0);
             }
 
             to {
-              transform: translateX(0%);
+              transform: translate3d(0%, 0, 0);
             }
           }
         }
 
         @media (prefers-reduced-motion: reduce) {
           .unitag-reveal,
-          .unitag-mobile-glow,
+          .unitag-mobile-orbit,
+          .unitag-mobile-dot,
           .unitag-marquee-track {
             animation: none !important;
             transition: none !important;
