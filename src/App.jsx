@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import {
   Apple,
   ArrowUpRight,
@@ -642,9 +642,25 @@ function Representative() {
 }
 
 function Roadmap() {
+  const roadmapRef = useRef(null);
+  const isMobile = useIsMobile();
+  const reduceMotion = useReducedMotion();
+
+  const { scrollYProgress } = useScroll({
+    target: roadmapRef,
+    offset: ["start 78%", "end 62%"],
+  });
+
+  const fillProgress = useTransform(scrollYProgress, [0, 1], [0.001, 1]);
+
+  const pathD = isMobile
+    ? "M 18 0 C 42 95 6 160 28 250 C 54 360 6 430 28 540 C 54 650 6 720 28 830 C 54 940 8 1000 24 1080"
+    : "M 50 0 C 88 95 12 160 50 250 C 88 360 12 430 50 540 C 88 650 12 720 50 830 C 88 940 12 1000 50 1080";
+
   return (
     <section id="roadmap" className="relative overflow-hidden px-5 py-20 text-[#111] sm:px-8 sm:py-24">
       <BackgroundLayer />
+
       <div className="relative z-10 mx-auto max-w-7xl">
         <Reveal>
           <div className="max-w-3xl">
@@ -655,25 +671,69 @@ function Roadmap() {
           </div>
         </Reveal>
 
-        <div className="mt-10 grid gap-4">
-          {roadmap.map((item, index) => {
-            const Icon = item.icon;
+        <div ref={roadmapRef} className="relative mt-14 min-h-[64rem] md:mt-16 md:min-h-[68rem]">
+          <svg
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 h-full w-full overflow-visible"
+            viewBox="0 0 100 1080"
+            preserveAspectRatio="none"
+          >
+            <path
+              d={pathD}
+              fill="none"
+              stroke="rgba(17,17,17,0.13)"
+              strokeWidth={isMobile ? "2.5" : "1.8"}
+              strokeLinecap="round"
+              vectorEffect="non-scaling-stroke"
+            />
 
-            return (
-              <Reveal key={item.title} delay={index * 40} y={20}>
-                <article className="grid gap-5 rounded-[1.8rem] border border-[#111]/10 bg-white/78 p-5 text-[#111] shadow-md md:bg-white/74 md:shadow-[0_25px_90px_rgba(17,17,17,0.08)] md:backdrop-blur-xl sm:p-6 md:grid-cols-[90px_1fr_1.25fr] md:items-center">
-                  <div className="text-3xl font-black text-red-600">0{index + 1}</div>
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-600 ring-1 ring-red-500/10">
-                      <Icon className="h-6 w-6" />
+            <motion.path
+              d={pathD}
+              fill="none"
+              stroke="rgb(220,38,38)"
+              strokeWidth={isMobile ? "3" : "2.4"}
+              strokeLinecap="round"
+              vectorEffect="non-scaling-stroke"
+              style={{ pathLength: reduceMotion ? 1 : fillProgress }}
+            />
+          </svg>
+
+          <div className="relative z-10 space-y-10 md:space-y-12">
+            {roadmap.map((item, index) => {
+              const Icon = item.icon;
+              const isLeft = index % 2 === 0;
+
+              return (
+                <Reveal key={item.title} delay={index * 35} y={18}>
+                  <article
+                    className={cn(
+                      "relative flex min-h-[9rem] items-start",
+                      isLeft ? "md:justify-start" : "md:justify-end"
+                    )}
+                  >
+                    <div className="absolute left-[calc(18%-1.5rem)] top-4 z-20 flex h-12 w-12 items-center justify-center rounded-full border border-red-500/20 bg-white text-red-600 shadow-[0_12px_40px_rgba(220,38,38,0.12)] md:left-1/2 md:-translate-x-1/2">
+                      <Icon className="h-5 w-5" />
                     </div>
-                    <h3 className="text-xl font-black text-[#111] sm:text-2xl">{item.title}</h3>
-                  </div>
-                  <p className="leading-7 text-[#111]/60">{item.text}</p>
-                </article>
-              </Reveal>
-            );
-          })}
+
+                    <div
+                      className={cn(
+                        "relative z-10 ml-16 w-[calc(100%-4rem)] rounded-[1.8rem] border border-[#111]/10 bg-white/78 p-5 shadow-md md:ml-0 md:w-[42%] md:bg-white/74 md:p-6 md:shadow-[0_25px_90px_rgba(17,17,17,0.08)] md:backdrop-blur-xl",
+                        isLeft ? "md:mr-auto md:pr-8" : "md:ml-auto md:pl-8"
+                      )}
+                    >
+                      <div className="mb-4 flex items-center gap-3">
+                        <span className="h-2.5 w-2.5 rounded-full bg-red-600 shadow-[0_0_18px_rgba(220,38,38,0.28)]" />
+                        <span className="text-xs font-black uppercase tracking-[0.18em] text-red-600">Yakında</span>
+                      </div>
+
+                      <h3 className="text-2xl font-black tracking-tight text-[#111]">{item.title}</h3>
+                      <p className="mt-3 leading-7 text-[#111]/60">{item.text}</p>
+                    </div>
+                  </article>
+                </Reveal>
+              );
+            })}
+          </div>
         </div>
       </div>
     </section>
@@ -1192,7 +1252,7 @@ export default function UnitagLandingPage() {
       <Hero />
       <Marquee items={["indirim", "ikinci el", "ev / oda", "kampüs", "kariyer", "sohbet", "ders notları"]} />
       <Features />
-      <Marquee items={["Unitag'la öğrenci olmak daha kolay", "kampüste büyüyen platform", "öğrenci fırsatları"]} />
+      <Marquee items={["Unitag'la öğrenci olmak daha kolay", "öğrenci fırsatları"]} />
       <Representative />
       <Roadmap />
       <Team />
